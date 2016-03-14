@@ -37,44 +37,7 @@ volatile int TERMINATEFLAG;
 struct termios orig_termios;
 
 
-void reset_terminal_mode()
-{
-    tcsetattr(0, TCSANOW, &orig_termios);
-}
 
-void set_conio_terminal_mode()
-{
-    struct termios new_termios;
-
-    /* take two copies - one for now, one for later */
-    tcgetattr(0, &orig_termios);
-    memcpy(&new_termios, &orig_termios, sizeof(new_termios));
-
-    /* register cleanup handler, and set the new terminal mode */
-    atexit(reset_terminal_mode);
-    cfmakeraw(&new_termios);
-    tcsetattr(0, TCSANOW, &new_termios);
-}
-
-int kbhit()
-{
-    struct timeval tv = { 0L, 0L };
-    fd_set fds;
-    FD_ZERO(&fds);
-    FD_SET(0, &fds);
-    return select(1, &fds, NULL, NULL, &tv);
-}
-
-char getch()
-{
-    char r;
-    unsigned char c;
-    if ((r = read(0, &c, sizeof(c))) < 0) {
-        return r;
-    } else {
-        return c;
-    }
-}
 #endif
 #include "proc_object.h"
 void childprogram();
@@ -112,28 +75,16 @@ int main(int argc, char *argv[])
             }
             usleep(10000);
             g='$';
-            //cout<<g;
             fflush(stdout);
 
             pr.receive();
-            //pr.shmr[0]='b';
-           // cout<<pr.shmr[0];
-            //pr.receive();
         }
         g=mygetch();
-        //if (g=='$') continue;
         if(g=='\r') putchar('\n');
         putchar(g);
         pr.send(g);
         pr.shm[0]=g;
         pr.shm[1]=0;
-        //cout<<g;
-        //g = getch();
-        //cout<<123<<endl;
-        /*if(g!='$')
-        {
-            pr.send(g);
-        }*/
 
         fflush(stdout);
     }
@@ -145,30 +96,8 @@ void childprogram()
     char g='$';
     cout<<"child"<<endl;
     char * shm, *shmr;
-#ifdef linux
-    key_t keyr=ftok("lab3",0);
-    key_t key=ftok("lab3",1);
-    int shmid = shmget(key, 100, 0666);
-    shm = (char*)shmat(shmid, NULL, 0);
-    int shmidr = shmget(keyr, 100, 0666);
-    shmr = (char*)shmat(shmidr, NULL, 0);
-#elif _WIN32
-    HANDLE sendmap,receivemap;
-    sendmap = ::CreateFileMappingW(
-            NULL, // без файла на диске
-            NULL, // не наследуется процессами-потомками
-            PAGE_READWRITE,
-            0, 100, // размер
-            L"Local\\test-shared-memory2");
-    receivemap = ::CreateFileMappingW(
-                NULL, // без файла на диске
-                NULL, // не наследуется процессами-потомками
-                PAGE_READWRITE,
-                0, 100, // размер
-                L"Local\\test-shared-memory");
-   shm = (char*)::MapViewOfFile(sendmap, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0);
-   shmr = (char*)::MapViewOfFile(receivemap, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0);
-#endif
+    shm=getshm();
+    shmr=getshmr();
     shmr[0]=0;
     shmr[2]=0;
     while(true)
@@ -194,7 +123,6 @@ void childprogram()
             }
         }
         g=mygetch();
-        //fflush(stdout);
         if(g=='\r') putchar('\n');
         putchar(g);
         shm[0]=g;

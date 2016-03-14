@@ -84,12 +84,6 @@ public:
              proc = fork ();
              if (proc == 0)
              {
-                 //close(1); /* Close current stdout. */
-                 //dup( cp[1]); /* Make stdout go to write end of pipe. */
-                 //close(0); /* Close current stdin. */
-                 //dup( pc[0]); /* Make stdin come from read end of pipe. */
-                 //close( pc[1]);
-                 //close( cp[0]);
                  usleep(1000);
                //execlp(filename.c_str(),filename.c_str(),param.c_str(),NULL);
                  execlp ("/usr/bin/xterm", "xterm", "-bd", "black", "-bg", "black",
@@ -99,12 +93,10 @@ public:
              else
            {
              key_t key=ftok("lab3",0); //передача в child
-             //cout<<key<<endl;
              shmid = shmget(key, 100,IPC_CREAT | 0666);
 
              shm =(char*) shmat(shmid, NULL, 0);
              key_t keyr=ftok("lab3",1); //прием от child
-             //cout<<keyr<<endl;
              fflush(stdout);
              shmidr = shmget(keyr, 100,IPC_CREAT | 0666);
              shmr =(char*) shmat(shmidr, NULL, 0);
@@ -234,4 +226,83 @@ void set_keypress(termios & stored_settings)
         return ret;
 
     }
+    void reset_terminal_mode()
+    {
+        tcsetattr(0, TCSANOW, &orig_termios);
+    }
+
+    void set_conio_terminal_mode()
+    {
+        struct termios new_termios;
+
+        /* take two copies - one for now, one for later */
+        tcgetattr(0, &orig_termios);
+        memcpy(&new_termios, &orig_termios, sizeof(new_termios));
+
+        /* register cleanup handler, and set the new terminal mode */
+        atexit(reset_terminal_mode);
+        cfmakeraw(&new_termios);
+        tcsetattr(0, TCSANOW, &new_termios);
+    }
+
+    int kbhit()
+    {
+        struct timeval tv = { 0L, 0L };
+        fd_set fds;
+        FD_ZERO(&fds);
+        FD_SET(0, &fds);
+        return select(1, &fds, NULL, NULL, &tv);
+    }
+
+    char getch()
+    {
+        char r;
+        unsigned char c;
+        if ((r = read(0, &c, sizeof(c))) < 0) {
+            return r;
+        } else {
+            return c;
+        }
+    }
 #endif
+    char * getshm()
+    {
+        char * shm;
+#ifdef linux
+
+    key_t key=ftok("lab3",1);
+    int shmid = shmget(key, 100, 0666);
+    shm = (char*)shmat(shmid, NULL, 0);
+    return shm;
+#elif _WIN32
+    HANDLE sendmap;
+    sendmap = ::CreateFileMappingW(
+            NULL, // без файла на диске
+            NULL, // не наследуется процессами-потомками
+            PAGE_READWRITE,
+            0, 100, // размер
+            L"Local\\test-shared-memory2");
+   shm = (char*)::MapViewOfFile(sendmap, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0);
+   return shm;
+#endif
+    }
+    char * getshmr()
+    {
+        char * shmr;
+#ifdef linux
+    key_t keyr=ftok("lab3",0);
+    int shmidr = shmget(keyr, 100, 0666);
+    shmr = (char*)shmat(shmidr, NULL, 0);
+    return shmr;
+#elif _WIN32
+    HANDLE receivemap;
+    receivemap = ::CreateFileMappingW(
+                NULL, // без файла на диске
+                NULL, // не наследуется процессами-потомками
+                PAGE_READWRITE,
+                0, 100, // размер
+                L"Local\\test-shared-memory");
+   shmr = (char*)::MapViewOfFile(receivemap, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0);
+   return shmr;
+#endif
+    }
