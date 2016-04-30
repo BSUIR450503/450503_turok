@@ -10,8 +10,14 @@
     <height>563</height>
    </rect>
   </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Информация о системе</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <widget class="QTabWidget" name="tabWidget">
@@ -28,7 +34,7 @@
     </property>
     <widget class="QWidget" name="tab">
      <attribute name="title">
-      <string>Tab 1</string>
+      <string>Общая</string>
      </attribute>
      <widget class="QTableWidget" name="tableWidget">
       <property name="geometry">
@@ -73,7 +79,7 @@
        <bool>false</bool>
       </attribute>
       <attribute name="verticalHeaderDefaultSectionSize">
-       <number>15</number>
+       <number>17</number>
       </attribute>
       <attribute name="verticalHeaderMinimumSectionSize">
        <number>15</number>
@@ -94,7 +100,7 @@
     </widget>
     <widget class="QWidget" name="tab_2">
      <attribute name="title">
-      <string>Tab 2</string>
+      <string>Процессы</string>
      </attribute>
      <widget class="QScrollArea" name="scrollArea">
       <property name="geometry">
@@ -126,11 +132,14 @@
           <height>431</height>
          </rect>
         </property>
+        <property name="editTriggers">
+         <set>QAbstractItemView::NoEditTriggers</set>
+        </property>
         <property name="sortingEnabled">
          <bool>true</bool>
         </property>
         <property name="cornerButtonEnabled">
-         <bool>false</bool>
+         <bool>true</bool>
         </property>
         <property name="rowCount">
          <number>0</number>
@@ -144,8 +153,63 @@
         <attribute name="verticalHeaderVisible">
          <bool>false</bool>
         </attribute>
-        <column/>
-        <column/>
+        <column>
+         <property name="text">
+          <string>Процесс</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>ID</string>
+         </property>
+        </column>
+       </widget>
+      </widget>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab_3">
+     <attribute name="title">
+      <string>Пользователи</string>
+     </attribute>
+     <widget class="QScrollArea" name="scrollArea_2">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>591</width>
+        <height>451</height>
+       </rect>
+      </property>
+      <property name="widgetResizable">
+       <bool>true</bool>
+      </property>
+      <widget class="QWidget" name="scrollAreaWidgetContents_2">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>589</width>
+         <height>449</height>
+        </rect>
+       </property>
+       <widget class="QTableWidget" name="users_table">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>0</y>
+          <width>591</width>
+          <height>451</height>
+         </rect>
+        </property>
+        <property name="editTriggers">
+         <set>QAbstractItemView::NoEditTriggers</set>
+        </property>
+        <attribute name="horizontalHeaderVisible">
+         <bool>false</bool>
+        </attribute>
+        <attribute name="verticalHeaderVisible">
+         <bool>false</bool>
+        </attribute>
        </widget>
       </widget>
      </widget>

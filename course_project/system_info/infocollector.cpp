@@ -1,25 +1,28 @@
 #include "infocollector.h"
 #include <QString>
-#include <tlhelp32.h>
+
+#pragma comment(lib, "netapi32.lib")
 void InfoCollector::getosinfo(){
         long unsigned int size_ = 255;
         LPDWORD size = &size_;
         WCHAR info[256];
-        char info_str[256];
         GetComputerNameW(info,size);
-        info_strings[0][5] = "Имя компьютера";
-        wcstombs(info_str,info,255);
+        info_strings[0][7] = "Имя компьютера";
         QString rus_str;
         rus_str = QString::fromWCharArray(info);
-        info_strings[1][5] = rus_str.toStdString();
+        info_strings[1][7] = rus_str.toStdString();
 
         OSVERSIONINFOEX osversion;
         ZeroMemory(&osversion, sizeof(OSVERSIONINFOEX));
         osversion.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
         GetVersionEx((OSVERSIONINFO *) &osversion);
-        info_strings[0][6] = "Версия windows";
-        info_strings[1][6] = getOsVersionString(osversion.dwMajorVersion,osversion.dwMinorVersion,
+        info_strings[0][8] = "Версия windows";
+        info_strings[1][8] = getOsVersionString(osversion.dwMajorVersion,osversion.dwMinorVersion,
                                                 (osversion.wProductType == VER_NT_WORKSTATION));
+        info_strings[0][9] = "Текущий пользователь:";
+        GetUserNameW(info,size);
+        rus_str = QString::fromWCharArray(info);
+        info_strings[1][9] = rus_str.toStdString();
     }
 
 
@@ -30,17 +33,17 @@ void InfoCollector::getmemoryinfo() {
     char buffer[256];
     char * memvolume = new char[100];
     memvolume = itoa(status.ullTotalPhys/1048576,buffer,10);
-    info_strings[0][2] = "ОЗУ (Мб)";
-    info_strings[1][2] = memvolume;
-    memvolume = itoa(status.ullAvailPhys/1048576,buffer,10);
-    info_strings[0][3] = "ОЗУ свободно (Мб)";
+    info_strings[0][3] = "ОЗУ (Мб)";
     info_strings[1][3] = memvolume;
-    memvolume = itoa(status.ullTotalPageFile/1048576,buffer,10);
-    info_strings[0][4] = "подкачка (swap)";
+    memvolume = itoa(status.ullAvailPhys/1048576,buffer,10);
+    info_strings[0][4] = "ОЗУ свободно (Мб)";
     info_strings[1][4] = memvolume;
-    memvolume = itoa(status.ullAvailPageFile/1048576,buffer,10);
-    info_strings[0][5] = "подкачка доступно";
+    memvolume = itoa(status.ullTotalPageFile/1048576,buffer,10);
+    info_strings[0][5] = "подкачка (swap)";
     info_strings[1][5] = memvolume;
+    memvolume = itoa(status.ullAvailPageFile/1048576,buffer,10);
+    info_strings[0][6] = "подкачка доступно";
+    info_strings[1][6] = memvolume;
 }
 
 void InfoCollector::getcpuinfo(){
@@ -64,14 +67,18 @@ void InfoCollector::getcpuinfo(){
     char * freqinfo=itoa(frequency, cpuinfoout,10);
     info_strings[0][1] = "Частота ЦП (МГц)";
     info_strings[1][1] = freqinfo;
+
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+    char * cores = itoa(sysinfo.dwNumberOfProcessors,cpuinfoout,10);
+    info_strings[0][2] = "Число ядер";
+    info_strings[1][2] = cores;
 }
 
 BOOL InfoCollector::GetProcessList( )
 {
   HANDLE hProcessSnap;
-  HANDLE hProcess;
   PROCESSENTRY32 pe32;
-  DWORD dwPriorityClass;
 
     hProcessSnap = CreateToolhelp32Snapshot( TH32CS_SNAPPROCESS, 0 );
   if( hProcessSnap == INVALID_HANDLE_VALUE )
@@ -91,21 +98,77 @@ BOOL InfoCollector::GetProcessList( )
   }
 
 
-  int row=0;
   do
   {
-      gui->tableWidget_2->insertRow(row);
-      gui->tableWidget_2->setItem(row,0,new QTableWidgetItem());
-      gui->tableWidget_2->setItem(row,1,new QTableWidgetItem());
       QString wstr;
       char buf[30];
       wstr = QString::fromWCharArray(pe32.szExeFile);
-      gui->tableWidget_2->item(row,1)->setText(itoa(pe32.th32ProcessID,buf,10));
-      gui->tableWidget_2->item(row,0)->setText(wstr);
-    row++;
+      process_list.push_back(wstr.toStdString());
+      string id = itoa(pe32.th32ProcessID,buf,10);
+      process_id_list.push_back(id);
 
   } while( Process32Next( hProcessSnap, &pe32 ) );
 
   CloseHandle( hProcessSnap );
   return( TRUE );
+}
+
+void InfoCollector::getUsersListInfo(){
+       LPUSER_INFO_0 pBuf = NULL;
+       LPUSER_INFO_0 pTmpBuf;
+       DWORD dwLevel = 0;
+       DWORD dwPrefMaxLen = MAX_PREFERRED_LENGTH;
+       DWORD dwEntriesRead = 0;
+       DWORD dwTotalEntries = 0;
+       DWORD dwResumeHandle = 0;
+       DWORD i;
+       DWORD dwTotalCount = 0;
+       NET_API_STATUS nStatus;
+       LPTSTR pszServerName = NULL;
+
+       do
+       {
+          nStatus = NetUserEnum((LPCWSTR) pszServerName,
+                                dwLevel,
+                                FILTER_NORMAL_ACCOUNT, // global users
+                                (LPBYTE*)&pBuf,
+                                dwPrefMaxLen,
+                                &dwEntriesRead,
+                                &dwTotalEntries,
+                                &dwResumeHandle);
+          // If the call succeeds,
+          if ((nStatus == NERR_Success) || (nStatus == ERROR_MORE_DATA))
+          {
+             if ((pTmpBuf = pBuf) != NULL)
+             {
+                for (i = 0; (i < dwEntriesRead); i++)
+                {
+                   assert(pTmpBuf != NULL);
+
+                   if (pTmpBuf == NULL)
+                   {
+                      fprintf(stderr, "An access violation has occurred\n");
+                      break;
+                   }
+                   QString wide_str;
+                   wide_str = QString::fromWCharArray(pTmpBuf->usri0_name);
+                   user_list.push_back(wide_str.toStdString());
+                   pTmpBuf++;
+                   dwTotalCount++;
+                }
+             }
+          }
+          else
+             fprintf(stderr, "A system error has occurred: %d\n", nStatus);
+          // Free the allocated buffer.
+          if (pBuf != NULL)
+          {
+             NetApiBufferFree(pBuf);
+             pBuf = NULL;
+          }
+       }
+       while (nStatus == ERROR_MORE_DATA);
+
+       if (pBuf != NULL)
+          NetApiBufferFree(pBuf);
 }

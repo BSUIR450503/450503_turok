@@ -1,0 +1,1 @@
+add "-lnetapi32" at "LIBS = " in makefile
