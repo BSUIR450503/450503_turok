@@ -11,16 +11,17 @@ MainWindow::MainWindow(QWidget *parent) :
     info_obj.gui=ui;
     ui->tableWidget->setColumnWidth(0,150);
     ui->tableWidget->setColumnWidth(1,300);
+    ui->tableWidget->setRowCount(INFO_ROW_COUNT);
     ui->tableWidget_2->setColumnWidth(0,500);
     ui->tableWidget_2->setColumnWidth(1,50);
-    for (int i=0;i<10;i++)
+    for (int i=0;i<INFO_ROW_COUNT;i++)
         for (int j=0;j<2;j++) {
             ui->tableWidget->setItem(i,j,new QTableWidgetItem());
             ui->tableWidget->setItem(i,j,new QTableWidgetItem());
         }
     info_obj.collect();
     for (int i=0;i<2;i++)
-        for (int j=0;j<10;j++) {
+        for (int j=0;j<INFO_ROW_COUNT;j++) {
             if (info_obj.info_strings[i][j].empty()) continue;
             ui->tableWidget->item(j,i)->setText(info_obj.info_strings[i][j].c_str());
         }
@@ -43,7 +44,15 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->users_table->item(i,0)->setText(info_obj.user_list[i].c_str());
     }
     ui->tableWidget_2->horizontalHeader()->setVisible(true);
-    ui->tableWidget->repaint();
+    ui->tableWidget_3->setColumnWidth(3,150);
+    for (unsigned int i=0;i<info_obj.disks_list.size();i++){
+         ui->tableWidget_3->insertRow(i);
+         for (int j=0;j<5;j++) {
+         ui->tableWidget_3->setItem(i,j,new QTableWidgetItem());
+         ui->tableWidget_3->item(i,j)->setText(info_obj.disks_list[i][j].c_str());
+         }
+     }
+    //ui->tableWidget->repaint();
 }
 
 MainWindow::~MainWindow()

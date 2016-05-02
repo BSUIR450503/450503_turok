@@ -30,7 +30,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>3</number>
     </property>
     <widget class="QWidget" name="tab">
      <attribute name="title">
@@ -40,9 +40,9 @@
       <property name="geometry">
        <rect>
         <x>0</x>
-        <y>10</y>
-        <width>591</width>
-        <height>391</height>
+        <y>0</y>
+        <width>601</width>
+        <height>461</height>
        </rect>
       </property>
       <property name="sizePolicy">
@@ -210,6 +210,72 @@
         <attribute name="verticalHeaderVisible">
          <bool>false</bool>
         </attribute>
+       </widget>
+      </widget>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab_4">
+     <attribute name="title">
+      <string>Диски</string>
+     </attribute>
+     <widget class="QScrollArea" name="scrollArea_3">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>591</width>
+        <height>451</height>
+       </rect>
+      </property>
+      <property name="widgetResizable">
+       <bool>true</bool>
+      </property>
+      <widget class="QWidget" name="scrollAreaWidgetContents_3">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>589</width>
+         <height>449</height>
+        </rect>
+       </property>
+       <widget class="QTableWidget" name="tableWidget_3">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>0</y>
+          <width>591</width>
+          <height>451</height>
+         </rect>
+        </property>
+        <attribute name="horizontalHeaderMinimumSectionSize">
+         <number>45</number>
+        </attribute>
+        <column>
+         <property name="text">
+          <string>Диск</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Тип</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Свободно (Гб)</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Файловая система</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Серийн. №</string>
+         </property>
+        </column>
        </widget>
       </widget>
      </widget>

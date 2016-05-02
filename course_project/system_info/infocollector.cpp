@@ -1,6 +1,8 @@
 #include "infocollector.h"
 #include <QString>
-
+//#include <wmiutils.h>
+//#include <wmiatlprov.h>
+//#include <wmistr.h>
 #pragma comment(lib, "netapi32.lib")
 void InfoCollector::getosinfo(){
         long unsigned int size_ = 255;
@@ -23,6 +25,41 @@ void InfoCollector::getosinfo(){
         GetUserNameW(info,size);
         rus_str = QString::fromWCharArray(info);
         info_strings[1][9] = rus_str.toStdString();
+
+        LPWSTR	lpNameBuffer;
+        NET_API_STATUS nas;
+        NETSETUP_JOIN_STATUS BufferType;
+        nas = NetGetJoinInformation(NULL, &lpNameBuffer, &BufferType);
+        if (nas != NERR_Success) return;
+        switch (BufferType)
+        {
+        case NetSetupUnknownStatus:
+            rus_str = "неизвестно";
+            break;
+        case NetSetupUnjoined:
+            rus_str = "не присоединен";
+            break;
+
+        case NetSetupWorkgroupName:
+            rus_str = QString::fromWCharArray(lpNameBuffer);
+            break;
+
+        case NetSetupDomainName:
+            rus_str = QString::fromWCharArray(lpNameBuffer);
+            break;
+        }
+        NetApiBufferFree(lpNameBuffer);
+        info_strings[0][10] = "Раб. группа / домен";
+        info_strings[1][10] = rus_str.toStdString();
+        DISPLAY_DEVICE DevInfo;
+        DevInfo.cb = sizeof(DISPLAY_DEVICE);
+        EnumDisplayDevices (NULL, 0, &DevInfo, 0);
+        rus_str = QString::fromWCharArray(DevInfo.DeviceString);
+        info_strings[0][11] = "Видеоадаптер";
+        info_strings[1][11] = rus_str.toStdString();
+        LCID locale;
+
+
     }
 
 
@@ -106,7 +143,6 @@ BOOL InfoCollector::GetProcessList( )
       process_list.push_back(wstr.toStdString());
       string id = itoa(pe32.th32ProcessID,buf,10);
       process_id_list.push_back(id);
-
   } while( Process32Next( hProcessSnap, &pe32 ) );
 
   CloseHandle( hProcessSnap );
@@ -171,4 +207,97 @@ void InfoCollector::getUsersListInfo(){
 
        if (pBuf != NULL)
           NetApiBufferFree(pBuf);
+}
+
+void InfoCollector::getDisksInfo(){
+    DWORD cchBuffer;
+        WCHAR* driveStrings;
+        UINT driveType;
+        PWSTR driveTypeString;
+        ULARGE_INTEGER freeSpace;
+
+        // Find out how big a buffer we need
+        cchBuffer = GetLogicalDriveStrings(0, NULL);
+
+        driveStrings = (WCHAR*)malloc((cchBuffer + 1) * sizeof(TCHAR));
+        if (driveStrings == NULL)
+        {
+            return;
+        }
+
+        // Fetch all drive strings
+        GetLogicalDriveStrings(cchBuffer, driveStrings);
+        WCHAR nameBuffer[100];
+        WCHAR SysNameBuffer[100];
+        DWORD VSNumber;
+        DWORD MCLength;
+        DWORD FileSF;
+        bool isPresent;
+        // Loop until we find the final '\0'
+        // driveStrings is a double null terminated list of null terminated strings)
+        while (*driveStrings)
+        {
+            // Dump drive information
+            driveType = GetDriveType(driveStrings);
+            QString type;
+            QString space;
+            QString letter;
+            QString fileSystem;
+            QString serialNumber;
+            switch (driveType)
+            {
+            case DRIVE_FIXED:
+                driveTypeString = L"HDD";
+                break;
+
+            case DRIVE_CDROM:
+                driveTypeString = L"CD/DVD";
+                break;
+
+            case DRIVE_REMOVABLE:
+                driveTypeString = L"Съемный";
+                break;
+
+            case DRIVE_REMOTE:
+                driveTypeString = L"Сетевой";
+                break;
+            case DRIVE_RAMDISK:
+                driveTypeString = L"RAM";
+                break;
+            default:
+                driveTypeString = L"Неизвестно";
+                break;
+            }
+            isPresent = GetDiskFreeSpaceEx(driveStrings, &freeSpace, NULL, NULL);
+            if (!isPresent) {
+                type = QString::fromWCharArray(driveTypeString);
+                space = "-";
+                letter = QString::fromWCharArray(driveStrings);
+                fileSystem = "-";
+                serialNumber = "-";
+            }
+            else {
+            GetVolumeInformationW(driveStrings,nameBuffer,99,&VSNumber,&MCLength,&FileSF,SysNameBuffer,sizeof(SysNameBuffer));
+
+            type = QString::fromWCharArray(driveTypeString);
+            space = QString::number(freeSpace.QuadPart / 1024 / 1024 / 1024);
+            letter = QString::fromWCharArray(driveStrings);
+            fileSystem = QString::fromWCharArray(SysNameBuffer);
+            serialNumber = QString::number(VSNumber);
+            }
+            vector<string> one_disk_info;
+            one_disk_info.push_back(letter.toStdString());
+            one_disk_info.push_back(type.toStdString());
+            one_disk_info.push_back(space.toStdString());
+            one_disk_info.push_back(fileSystem.toStdString());
+            one_disk_info.push_back(serialNumber.toStdString());
+            disks_list.push_back(one_disk_info);
+            // Move to next drive string
+            // +1 is to move past the null at the end of the string.
+            driveStrings += lstrlen(driveStrings) + 1;
+        }
+
+        free(driveStrings);
+
+        return;
 }
