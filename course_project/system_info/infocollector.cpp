@@ -1,8 +1,6 @@
 #include "infocollector.h"
 #include <QString>
-//#include <wmiutils.h>
-//#include <wmiatlprov.h>
-//#include <wmistr.h>
+#include <iomanip>
 #pragma comment(lib, "netapi32.lib")
 void InfoCollector::getosinfo(){
         long unsigned int size_ = 255;
@@ -12,7 +10,7 @@ void InfoCollector::getosinfo(){
         info_strings[0][7] = "Имя компьютера";
         QString rus_str;
         rus_str = QString::fromWCharArray(info);
-        info_strings[1][7] = rus_str.toStdString();
+        info_strings[1][7] = rus_str;
 
         OSVERSIONINFOEX osversion;
         ZeroMemory(&osversion, sizeof(OSVERSIONINFOEX));
@@ -24,7 +22,7 @@ void InfoCollector::getosinfo(){
         info_strings[0][9] = "Текущий пользователь:";
         GetUserNameW(info,size);
         rus_str = QString::fromWCharArray(info);
-        info_strings[1][9] = rus_str.toStdString();
+        info_strings[1][9] = rus_str;
 
         LPWSTR	lpNameBuffer;
         NET_API_STATUS nas;
@@ -50,15 +48,13 @@ void InfoCollector::getosinfo(){
         }
         NetApiBufferFree(lpNameBuffer);
         info_strings[0][10] = "Раб. группа / домен";
-        info_strings[1][10] = rus_str.toStdString();
+        info_strings[1][10] = rus_str;
         DISPLAY_DEVICE DevInfo;
         DevInfo.cb = sizeof(DISPLAY_DEVICE);
         EnumDisplayDevices (NULL, 0, &DevInfo, 0);
         rus_str = QString::fromWCharArray(DevInfo.DeviceString);
         info_strings[0][11] = "Видеоадаптер";
-        info_strings[1][11] = rus_str.toStdString();
-        LCID locale;
-
+        info_strings[1][11] = rus_str;
 
     }
 
@@ -84,7 +80,7 @@ void InfoCollector::getmemoryinfo() {
 }
 
 void InfoCollector::getcpuinfo(){
-    TCHAR cpuinfo[256];
+    WCHAR cpuinfo[256];
     char cpuinfoout[256];
     LPCWSTR path = L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0";
     LPCWSTR value= L"ProcessorNameString";
@@ -300,4 +296,65 @@ void InfoCollector::getDisksInfo(){
         free(driveStrings);
 
         return;
+}
+
+void InfoCollector::getSoftwareList(){
+    HKEY appinfokey;
+
+    vector<string> subkeyList;
+    if( RegOpenKeyEx( HKEY_LOCAL_MACHINE,
+            TEXT("Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall"),
+            0,
+            KEY_READ,
+            &appinfokey) == ERROR_SUCCESS
+          )
+       {
+          QueryKey(appinfokey,subkeyList);
+       }
+        RegCloseKey(appinfokey);
+
+
+        for (int i=0;i<subkeyList.size();i++){
+            WCHAR appinfo[256];
+            WCHAR temp[256];
+            ZeroMemory(temp,sizeof(temp));
+            QString a = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\" + QString::fromStdString(subkeyList[i]);
+            a.toWCharArray(temp);
+            LPCWSTR path = temp;
+            LPCWSTR value= L"DisplayName";
+            LPCWSTR publisher= L"Publisher";
+            DWORD dwType = REG_SZ;
+            DWORD valueLength = 256;
+            RegOpenKey(HKEY_LOCAL_MACHINE,path,&appinfokey);
+            if(RegQueryValueEx(appinfokey,value,NULL,&dwType,reinterpret_cast<LPBYTE>(&appinfo),&valueLength) == ERROR_SUCCESS)
+            {
+                QString appname = QString::fromWCharArray(appinfo);
+                QString appPublisher;
+                if(RegQueryValueEx(appinfokey,publisher,NULL,&dwType,reinterpret_cast<LPBYTE>(&appinfo),&valueLength) == ERROR_SUCCESS){
+                    appPublisher = QString::fromWCharArray(appinfo);
+                }
+                vector<string> one_app_info;
+                one_app_info.push_back(appname.toStdString());
+                one_app_info.push_back(appPublisher.toStdString());
+                listOfSoftware.push_back(one_app_info);
+            }
+            RegCloseKey(appinfokey);
+        }
+}
+
+void InfoCollector::saveToFile(LPCWSTR path){
+    QString toChar = QString::fromWCharArray(path);
+    ofstream outFileStream;
+    outFileStream.open(toChar.toLocal8Bit());
+    outFileStream << QString::fromUtf8("Общая ифомация:").toLocal8Bit().constData() << endl;
+    for (int i=0;i<INFO_ROW_COUNT;i++)
+        outFileStream << left << setw(50) << info_strings[0][i].toLocal8Bit().constData() <<right<<setw(50)<< info_strings[1][i].toLocal8Bit().constData() <<endl;
+    outFileStream << QString::fromUtf8("Список процессов:").toLocal8Bit().constData() << endl;
+    outFileStream << left << setw(50) <<QString::fromUtf8("Процесс:").toLocal8Bit().constData() <<setw(15)<< "ID" <<endl;
+    for (int i=0;i<process_list.size();i++)
+        outFileStream << left << setw(50) << process_list[i] << left << setw(15)<< process_id_list[i] <<endl;
+    for (int i=0;i<disks_list.size();i++)
+        outFileStream << setw(5) << disks_list[i][0] << setw(10)<< disks_list[i][1] << setw(5) << disks_list[i][2]
+                         << setw(30) << disks_list[i][3] << setw(30) << disks_list[i][4] << endl;
+    outFileStream.close();
 }

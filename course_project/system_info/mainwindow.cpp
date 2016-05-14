@@ -22,8 +22,8 @@ MainWindow::MainWindow(QWidget *parent) :
     info_obj.collect();
     for (int i=0;i<2;i++)
         for (int j=0;j<INFO_ROW_COUNT;j++) {
-            if (info_obj.info_strings[i][j].empty()) continue;
-            ui->tableWidget->item(j,i)->setText(info_obj.info_strings[i][j].c_str());
+            if (info_obj.info_strings[i][j].isEmpty()) continue;
+            ui->tableWidget->item(j,i)->setText(info_obj.info_strings[i][j]);
         }
     ui->users_table->insertColumn(0);
     ui->users_table->setColumnWidth(0,600);
@@ -52,10 +52,35 @@ MainWindow::MainWindow(QWidget *parent) :
          ui->tableWidget_3->item(i,j)->setText(info_obj.disks_list[i][j].c_str());
          }
      }
+    ui->tableWidget_4->setColumnWidth(0,400);
+    ui->tableWidget_4->setColumnWidth(1,150);
+    for (unsigned int i=0;i<info_obj.listOfSoftware.size();i++){
+         ui->tableWidget_4->insertRow(i);
+         for (int j=0;j<2;j++) {
+         ui->tableWidget_4->setItem(i,j,new QTableWidgetItem());
+         ui->tableWidget_4->item(i,j)->setText(info_obj.listOfSoftware[i][j].c_str());
+         }
+     }
     //ui->tableWidget->repaint();
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::on_pushButton_clicked()
+{
+    WCHAR fileNameBuf[MAX_PATH] = L"";
+    OPENFILENAMEW ofn;
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize=sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFilter = (LPCWSTR)L".txt";
+    ofn.lpstrFile = fileNameBuf;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_EXPLORER | OFN_HIDEREADONLY;
+    ofn.lpstrDefExt = (LPCWSTR)L"txt";
+    if(!GetSaveFileNameW(&ofn)) return;
+    info_obj.saveToFile(ofn.lpstrFile);
 }

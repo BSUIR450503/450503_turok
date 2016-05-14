@@ -4,7 +4,7 @@
 #include "windows.h"
 #include "stdlib.h"
 #include "stdio.h"
-#include <iostream>
+#include <fstream>
 #include <string>
 #include <sstream>
 #include "utility.h"
@@ -17,11 +17,12 @@ class InfoCollector
 {
 public:
     Ui::MainWindow * gui;
-    string info_strings[2][INFO_ROW_COUNT];
+    QString info_strings[2][INFO_ROW_COUNT];
     vector<string> user_list;
     vector<string> process_list;
     vector<string> process_id_list;
     vector< vector<string> > disks_list;
+    vector< vector<string> > listOfSoftware;
     InfoCollector(){}
     void collect()
     {
@@ -31,7 +32,9 @@ public:
         GetProcessList();
         getUsersListInfo();
         getDisksInfo();
+        getSoftwareList();
     }
+    void saveToFile(LPCWSTR path);
 private slots:
     void on_tableWidget_2_clicked(const QModelIndex &index);
 
@@ -42,5 +45,6 @@ private:
     void getmemoryinfo();
     void getcpuinfo();
     void getUsersListInfo();
+    void getSoftwareList();
 };
 #endif // INFOCOLLECTOR_H
