@@ -77,6 +77,7 @@ void InfoCollector::getmemoryinfo() {
     memvolume = itoa(status.ullAvailPageFile/1048576,buffer,10);
     info_strings[0][6] = "подкачка доступно";
     info_strings[1][6] = memvolume;
+    delete[] memvolume;
 }
 
 void InfoCollector::getcpuinfo(){
@@ -106,9 +107,10 @@ void InfoCollector::getcpuinfo(){
     char * cores = itoa(sysinfo.dwNumberOfProcessors,cpuinfoout,10);
     info_strings[0][2] = "Число ядер";
     info_strings[1][2] = cores;
+    RegCloseKey(cpuinfokey);
 }
 
-BOOL InfoCollector::GetProcessList( )
+void InfoCollector::GetProcessList( )
 {
   HANDLE hProcessSnap;
   PROCESSENTRY32 pe32;
@@ -116,8 +118,8 @@ BOOL InfoCollector::GetProcessList( )
     hProcessSnap = CreateToolhelp32Snapshot( TH32CS_SNAPPROCESS, 0 );
   if( hProcessSnap == INVALID_HANDLE_VALUE )
   {
-    puts( "error: CreateToolhelp32Snapshot (of processes)");
-    return( FALSE );
+    puts( "error: CreateToolhelp32Snapshot (of processes)\n");
+    return;
   }
 
   // Set the size of the structure before using it.
@@ -127,7 +129,7 @@ BOOL InfoCollector::GetProcessList( )
   if( !Process32First( hProcessSnap, &pe32 ) )
   {
     CloseHandle( hProcessSnap );
-    return( FALSE );
+    return;
   }
 
 
@@ -142,7 +144,7 @@ BOOL InfoCollector::GetProcessList( )
   } while( Process32Next( hProcessSnap, &pe32 ) );
 
   CloseHandle( hProcessSnap );
-  return( TRUE );
+  return;
 }
 
 void InfoCollector::getUsersListInfo(){
@@ -352,9 +354,21 @@ void InfoCollector::saveToFile(LPCWSTR path){
     outFileStream << QString::fromUtf8("Список процессов:").toLocal8Bit().constData() << endl;
     outFileStream << left << setw(50) <<QString::fromUtf8("Процесс:").toLocal8Bit().constData() <<setw(15)<< "ID" <<endl;
     for (int i=0;i<process_list.size();i++)
-        outFileStream << left << setw(50) << process_list[i] << left << setw(15)<< process_id_list[i] <<endl;
+        outFileStream << left << setw(50) << process_list[i] << setw(15)<< process_id_list[i] <<endl;
+    outFileStream << endl << setw(5) <<QString::fromUtf8("Диск").toLocal8Bit().constData()
+                          << setw(5)<< QString::fromUtf8("Тип").toLocal8Bit().constData()
+                          << setw(10) << QString::fromUtf8("Свободно").toLocal8Bit().constData()
+                          << setw(30) << QString::fromUtf8("Файл. система").toLocal8Bit().constData()
+                          << setw(30) << QString::fromUtf8("Серийн. номер").toLocal8Bit().constData() << endl;
     for (int i=0;i<disks_list.size();i++)
-        outFileStream << setw(5) << disks_list[i][0] << setw(10)<< disks_list[i][1] << setw(5) << disks_list[i][2]
+        outFileStream << setw(5) << disks_list[i][0] << setw(10)<< QString::fromStdString(disks_list[i][1]).toLocal8Bit().constData() << setw(5) << disks_list[i][2]
                          << setw(30) << disks_list[i][3] << setw(30) << disks_list[i][4] << endl;
+    outFileStream<< endl << left << setw(100) <<QString::fromUtf8("Приложение:").toLocal8Bit().constData()
+                 <<setw(30)<< QString::fromUtf8("Издатель:").toLocal8Bit().constData() <<endl;
+    for (int i=0;i<listOfSoftware.size();i++)
+    {
+         outFileStream << setw(100) << QString::fromStdString(listOfSoftware[i][0]).toLocal8Bit().constData() << setw(30) <<
+                                                  QString::fromStdString(listOfSoftware[i][1]).toLocal8Bit().constData() << endl;
+    }
     outFileStream.close();
 }

@@ -1,3 +1,4 @@
+//infocollector.h
 #ifndef INFOCOLLECTOR_H
 #define INFOCOLLECTOR_H
 #include "ui_mainwindow.h"
@@ -39,7 +40,7 @@ private slots:
     void on_tableWidget_2_clicked(const QModelIndex &index);
 
 private:
-    BOOL GetProcessList();
+    void GetProcessList();
     void getDisksInfo();
     void getosinfo();
     void getmemoryinfo();
